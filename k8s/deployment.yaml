@@ -1,0 +1,112 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ${APP_NAME}
+  namespace: ${NAMESPACE}
+  labels:
+    app.kubernetes.io/name: ${APP_NAME}
+    app.kubernetes.io/managed-by: jenkins
+  annotations:
+    deploy.finacplus.io/build: "${BUILD_NUMBER}"
+    deploy.finacplus.io/commit: "${GIT_COMMIT}"
+    deploy.finacplus.io/deployed-at: "${BUILD_TIME}"
+spec:
+  replicas: ${REPLICAS}
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ${APP_NAME}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: ${APP_NAME}
+        app.kubernetes.io/version: "${APP_VERSION}"
+      annotations:
+        deploy.finacplus.io/commit: "${GIT_COMMIT}"
+    spec:
+      serviceAccountName: ${APP_NAME}
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: app
+          image: ${IMAGE}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: APP_ENV
+              value: "${APP_ENV}"
+            - name: CLUSTER_NAME
+              value: "${CLUSTER_NAME}"
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 192Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          readinessProbe:
+            httpGet: { path: /ready, port: http }
+            initialDelaySeconds: 2
+            periodSeconds: 3
+            timeoutSeconds: 2
+            failureThreshold: 3
+          livenessProbe:
+            httpGet: { path: /health, port: http }
+            initialDelaySeconds: 8
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+      volumes:
+        - name: tmp
+          emptyDir: {}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ${APP_NAME}
+  namespace: ${NAMESPACE}
+automountServiceAccountToken: false
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ${APP_NAME}
+  namespace: ${NAMESPACE}
+  labels:
+    app.kubernetes.io/name: ${APP_NAME}
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: ${APP_NAME}
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

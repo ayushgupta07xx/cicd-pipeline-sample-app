@@ -1,0 +1,60 @@
+# Least-privilege identity used by Jenkins to deploy into ${NAMESPACE}.
+# Scope: namespaced Role (NOT ClusterRole) — Jenkins cannot touch other namespaces.
+# Verbs are the minimum needed to: apply a Deployment/Service/SA, watch a
+# rollout, read pod logs on failure, and roll back. No delete. No secrets read.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: jenkins-deployer
+  namespace: ${NAMESPACE}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: jenkins-deployer
+  namespace: ${NAMESPACE}
+rules:
+  # Manage the workload itself
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "create", "update", "patch"]
+  # rollout status / undo reads the underlying ReplicaSets
+  - apiGroups: ["apps"]
+    resources: ["replicasets"]
+    verbs: ["get", "list"]
+  # Service + SA are applied alongside the Deployment
+  - apiGroups: [""]
+    resources: ["services", "serviceaccounts"]
+    verbs: ["get", "list", "create", "update", "patch"]
+  # Diagnostics on failure: read pods and their logs, nothing more
+  - apiGroups: [""]
+    resources: ["pods", "pods/log"]
+    verbs: ["get", "list"]
+  # Surface K8s events in the build log when a rollout stalls
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: jenkins-deployer
+  namespace: ${NAMESPACE}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: jenkins-deployer
+subjects:
+  - kind: ServiceAccount
+    name: jenkins-deployer
+    namespace: ${NAMESPACE}
+---
+# Long-lived token for this SA, consumed by Jenkins as a kubeconfig credential.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: jenkins-deployer-token
+  namespace: ${NAMESPACE}
+  annotations:
+    kubernetes.io/service-account.name: jenkins-deployer
+type: kubernetes.io/service-account-token

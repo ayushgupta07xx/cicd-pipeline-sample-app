@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Delivery Receipt</title>
+<style>
+  :root{
+    --bg:#08080a; --ink:#f0efec; --dim:#76767e; --faint:#33333b; --line:#191920;
+    --amber:#e8a33d; --ok:#4ea16a; --crit:#d05a4e;
+    --mono:ui-monospace,"Cascadia Mono","JetBrains Mono",Consolas,Menlo,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-font-smoothing:antialiased}
+  body{
+    background:var(--bg);color:var(--ink);font:14px/1.6 var(--mono);
+    min-height:100vh;overflow-y:auto;
+    background-image:
+      radial-gradient(1100px 520px at 50% -10%,rgba(232,163,61,.09),transparent 72%),
+      linear-gradient(rgba(255,255,255,.014) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(255,255,255,.014) 1px,transparent 1px);
+    background-size:auto,42px 42px,42px 42px;
+  }
+  .wrap{max-width:1140px;min-height:100vh;margin:0 auto;padding:0 40px;
+        display:flex;flex-direction:column}
+  @media(max-width:860px){.wrap{padding:0 20px}}
+
+  header{display:flex;align-items:center;justify-content:space-between;gap:20px;
+         padding:clamp(12px,1.8vh,20px) 0;border-bottom:1px solid var(--line);flex:none}
+  .brand{display:flex;align-items:center;gap:12px}
+  .dot{width:6px;height:6px;border-radius:50%;background:var(--amber);
+       box-shadow:0 0 0 0 rgba(232,163,61,.55);animation:pulse 2.4s infinite}
+  @keyframes pulse{70%{box-shadow:0 0 0 9px rgba(232,163,61,0)}100%{box-shadow:0 0 0 0 rgba(232,163,61,0)}}
+  .wordmark{font-weight:700;letter-spacing:3.5px;font-size:13px}
+  .env{font-size:11px;letter-spacing:2.2px;text-transform:uppercase;padding:5px 13px;
+       border:1px solid currentColor;border-radius:2px}
+
+  .hero{padding:clamp(18px,4vh,48px) 0 clamp(14px,3vh,36px);border-bottom:1px solid var(--line);
+        display:flex;align-items:flex-end;justify-content:space-between;gap:40px;flex-wrap:wrap;flex:none}
+  .hero .lbl{color:var(--dim);font-size:11px;letter-spacing:2px;text-transform:uppercase}
+  .bignum{font-size:clamp(48px,min(10vw,16vh),112px);line-height:.86;font-weight:700;
+          letter-spacing:-4px;margin-top:6px;font-variant-numeric:tabular-nums}
+  .bignum .hash{color:var(--faint);font-weight:400}
+  .heroright{text-align:right;display:flex;flex-direction:column;gap:9px;font-size:13px}
+  .heroright div span{color:var(--dim)}
+  .heroright b{font-weight:400;cursor:pointer}
+  .heroright b:hover{color:var(--amber)}
+
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:0;flex:none}
+  .cols > section{padding:clamp(14px,2.6vh,32px) 0}
+  .cols > section:first-child{border-right:1px solid var(--line);padding-right:38px}
+  .cols > section:last-child{padding-left:38px}
+  @media(max-width:860px){.cols{grid-template-columns:1fr}
+    .cols>section:first-child{border-right:0;border-bottom:1px solid var(--line);padding-right:0}
+    .cols>section:last-child{padding-left:0}}
+
+  .sec{display:flex;align-items:baseline;gap:11px;margin-bottom:clamp(8px,1.6vh,20px)}
+  .num{color:var(--amber);font-size:11px;letter-spacing:1px}
+  h2{font-size:13px;font-weight:500;letter-spacing:2.6px;text-transform:uppercase}
+  .sec .right{margin-left:auto;color:var(--faint);font-size:11.5px;letter-spacing:.4px}
+
+  .row{display:flex;align-items:baseline;gap:14px;padding:clamp(6px,1.05vh,11px) 0;
+       border-bottom:1px solid rgba(255,255,255,.032)}
+  .row:last-child{border-bottom:0}
+  .k{color:var(--dim);font-size:10.5px;letter-spacing:1.5px;text-transform:uppercase;width:112px;flex:none}
+  .v{font-size:13.5px;word-break:break-all}
+  .v.hi{color:var(--amber)}
+  .flash{animation:fl 1.1s ease}
+  @keyframes fl{0%{color:var(--amber)}100%{}}
+
+  .poll{padding:clamp(12px,2vh,24px) 0 0;border-top:1px solid var(--line);flex:none;display:block}
+  .pollgrid{display:grid;grid-template-columns:1fr 250px;gap:34px;align-items:start}
+  @media(max-width:860px){.pollgrid{grid-template-columns:1fr;gap:18px}}
+
+  .stream{display:block;max-height:196px;overflow-y:auto;
+          scrollbar-width:thin;scrollbar-color:var(--faint) transparent}
+  .stream::-webkit-scrollbar{width:4px}
+  .stream::-webkit-scrollbar-thumb{background:var(--faint);border-radius:2px}
+  .ev{display:grid;grid-template-columns:68px 58px 1fr;align-items:center;gap:12px;
+      height:24px;padding:0;border-bottom:1px solid rgba(255,255,255,.026)}
+  .ev:last-child{border-bottom:0}
+  .ev .ts{color:var(--faint);font-size:11px;font-variant-numeric:tabular-nums;letter-spacing:.3px}
+  .ev .lvl{font-size:9px;line-height:1;letter-spacing:1.2px;text-align:center;padding:3px 0;
+           border-radius:2px;border:1px solid currentColor;text-transform:uppercase;align-self:center}
+  .lvl.ready{color:var(--ok)}.lvl.deploy{color:var(--amber)}
+  .lvl.poll{color:var(--faint)}.lvl.error{color:var(--crit)}
+  .ev .msg{font-size:12px;color:var(--dim);letter-spacing:.2px;white-space:nowrap;
+           overflow:hidden;text-overflow:ellipsis}
+  .ev .msg b{color:var(--ink);font-weight:400}
+  .ev .msg em{color:var(--amber);font-style:normal}
+
+  .stats{border-left:1px solid var(--line);padding-left:26px;display:grid;
+         grid-template-columns:1fr 1fr;gap:12px 16px;align-content:start}
+  @media(max-width:860px){.stats{border-left:0;border-top:1px solid var(--line);
+    padding-left:0;padding-top:14px;grid-template-columns:repeat(3,1fr)}}
+  .stat .sk{color:var(--faint);font-size:9px;letter-spacing:1.3px;text-transform:uppercase}
+  .stat .sv{font-size:14px;margin-top:1px;font-variant-numeric:tabular-nums;letter-spacing:-.2px}
+  .stat .sv u{color:var(--faint);font-size:10px;text-decoration:none;margin-left:2px}
+  .stat.wide{grid-column:1/-1}
+  .bar{height:2px;background:var(--faint);margin-top:6px;position:relative;overflow:hidden;border-radius:1px}
+  .bar i{position:absolute;inset:0 100% 0 0;background:var(--amber);transition:right 1s linear}
+  @media(max-height:820px){
+    .bignum{font-size:clamp(44px,9vh,72px);letter-spacing:-2px}
+    .hero{padding:clamp(12px,2.4vh,26px) 0 clamp(10px,2vh,20px)}
+    .heroright{gap:5px;font-size:12px}
+    .stat .sk{font-size:9px}.stat .sv{font-size:14px}
+    .stats{padding-left:22px}
+  }
+  footer{padding:clamp(9px,1.5vh,15px) 0;border-top:1px solid var(--line);display:flex;
+         justify-content:space-between;gap:12px;color:var(--faint);font-size:11.5px;
+         letter-spacing:.4px;flex-wrap:wrap;flex:none;margin-top:clamp(8px,1.6vh,18px);
+         position:relative;z-index:1;background:var(--bg)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="brand"><span class="dot"></span><span class="wordmark">DELIVERY RECEIPT</span></div>
+  <span class="env" id="env">—</span>
+</header>
+
+<div class="hero">
+  <div>
+    <div class="lbl">Serving build</div>
+    <div class="bignum"><span class="hash">#</span><span id="build_number">—</span></div>
+  </div>
+  <div class="heroright">
+    <div><span>commit</span> <b id="git_commit" title="click to copy">—</b></div>
+    <div><span>cluster</span> <b id="cluster">—</b></div>
+    <div><span>uptime</span> <b id="uptime">—</b></div>
+  </div>
+</div>
+
+<div class="cols">
+  <section>
+    <div class="sec"><span class="num">01</span><h2>Artifact</h2><span class="right">baked at image build</span></div>
+    <div class="row"><span class="k">Branch</span><span class="v" id="git_branch">—</span></div>
+    <div class="row"><span class="k">Version</span><span class="v hi" id="app_version">—</span></div>
+    <div class="row"><span class="k">Built UTC</span><span class="v" id="build_time">—</span></div>
+    <div class="row"><span class="k">Full SHA</span><span class="v" id="full_sha">—</span></div>
+  </section>
+  <section>
+    <div class="sec"><span class="num">02</span><h2>Runtime</h2><span class="right">injected at deploy</span></div>
+    <div class="row"><span class="k">Environment</span><span class="v" id="environment">—</span></div>
+    <div class="row"><span class="k">Namespace</span><span class="v" id="namespace">—</span></div>
+    <div class="row"><span class="k">Pod</span><span class="v" id="pod">—</span></div>
+    <div class="row"><span class="k">Started</span><span class="v" id="started_at">—</span></div>
+  </section>
+</div>
+
+<div class="poll">
+  <div class="sec"><span class="num">03</span><h2>Event stream</h2><span class="right" id="status">connecting</span></div>
+  <div class="pollgrid">
+    <div class="stream" id="stream"></div>
+    <div class="stats">
+      <div class="stat"><div class="sk">Requests</div><div class="sv" id="s_req">0</div></div>
+      <div class="stat"><div class="sk">Success rate</div><div class="sv" id="s_ok">—<u>%</u></div></div>
+      <div class="stat"><div class="sk">Last latency</div><div class="sv" id="s_lat">—<u>ms</u></div></div>
+      <div class="stat"><div class="sk">Rollouts seen</div><div class="sv" id="s_roll">0</div></div>
+      <div class="stat wide"><div class="sk">Next poll</div><div class="sv" id="s_next">—<u>s</u></div>
+        <div class="bar"><i id="s_bar"></i></div></div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <span>One immutable image · promoted across clusters · runtime env differs only</span>
+  <span>GET /api/build-info · 5s</span>
+</footer>
+
+</div>
+<script>
+const C={prod:'#d05a4e',staging:'#e8a33d',local:'#76767e'};
+const $=id=>document.getElementById(id);
+let last=null, req=0, fail=0, rolls=0, next=5;
+
+function set(id,v){const e=$(id);if(e.textContent!==String(v)){e.textContent=v;
+  e.classList.remove('flash');void e.offsetWidth;e.classList.add('flash');}}
+function fmt(u){return u<60?u+'s':u<3600?Math.floor(u/60)+'m '+(u%60)+'s':Math.floor(u/3600)+'h '+Math.floor((u%3600)/60)+'m';}
+function ev(lvl,msg){
+  const d=document.createElement('div');d.className='ev';
+  d.innerHTML='<span class="ts">'+new Date().toLocaleTimeString('en-GB')+'</span>'
+    +'<span class="lvl '+lvl+'">'+lvl+'</span><span class="msg">'+msg+'</span>';
+  $('stream').prepend(d);
+  while($('stream').children.length>8)$('stream').lastChild.remove();
+}
+$('git_commit').onclick=()=>{navigator.clipboard?.writeText($('full_sha').textContent);
+  ev('poll','commit sha copied to clipboard');};
+
+async function poll(){
+  const t0=performance.now();
+  try{
+    const d=await (await fetch('/api/build-info',{cache:'no-store'})).json();
+    const lat=Math.round(performance.now()-t0);
+    req++;
+    set('build_number',d.build.build_number);
+    set('git_commit',String(d.build.git_commit).slice(0,7));
+    set('full_sha',d.build.git_commit);
+    ['git_branch','app_version','build_time'].forEach(k=>set(k,d.build[k]));
+    ['environment','cluster','namespace','pod','started_at'].forEach(k=>set(k,d.runtime[k]));
+    set('uptime',fmt(d.runtime.uptime_seconds));
+    const e=(d.runtime.environment||'local').toLowerCase();
+    const b=$('env');b.textContent=e;b.style.color=C[e]||C.local;
+
+    if(last===null) ev('ready','serving build <b>#'+d.build.build_number+'</b> · pod <b>'+d.runtime.pod+'</b>');
+    else if(last!==d.build.build_number){rolls++;
+      ev('deploy','rollout complete · <b>#'+last+'</b> → <em>#'+d.build.build_number+'</em> · '+d.runtime.cluster);}
+    else ev('poll','200 OK · build <b>#'+d.build.build_number+'</b> · '+lat+'ms · up '+fmt(d.runtime.uptime_seconds));
+    last=d.build.build_number;
+    set('s_lat',lat);$('s_lat').innerHTML=lat+'<u>ms</u>';
+    $('status').textContent='live';
+  }catch(err){
+    req++;fail++;ev('error','poll failed · '+(err.message||'unreachable'));
+    $('status').textContent='unreachable';$('s_lat').innerHTML='—<u>ms</u>';
+  }
+  set('s_req',req);set('s_roll',rolls);
+  $('s_ok').innerHTML=(req?(100*(req-fail)/req).toFixed(1):'—')+'<u>%</u>';
+  next=5;
+}
+setInterval(()=>{next=Math.max(0,next-1);$('s_next').innerHTML=next+'<u>s</u>';
+  $('s_bar').style.right=(next/5*100)+'%';},1000);
+poll();setInterval(poll,5000);
+</script>
+</body>
+</html>
