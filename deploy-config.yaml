@@ -1,0 +1,66 @@
+# Per-repository delivery contract.
+# The Jenkins shared library reads this file and derives the entire pipeline from it.
+# Onboarding a new service = this file + a Jenkinsfile. No pipeline code is copied.
+schemaVersion: 1
+
+app:
+  name: sample-app
+  version: "1.0.0"
+  imageRepo: finacplus/sample-app
+  port: 8080
+
+registry:
+  # Host-daemon-resolvable address. Jenkins uses the mounted Docker socket, so
+  # builds/pushes execute on the host daemon; kind nodes map this same address
+  # to the registry container via containerd hosts.toml.
+  host: localhost:5001
+
+build:
+  context: .
+  dockerfile: Dockerfile
+
+test:
+  # Unit tests run before any image is built. Empty list = skipped (declared, not implied).
+  commands:
+    - "python -m pytest -q"
+
+security:
+  trivy:
+    enabled: true
+    severity: "HIGH,CRITICAL"
+    ignoreUnfixed: true
+    # false = report and continue; true = fail the build on findings.
+    # Set to false here so the demo pipeline is deterministic; see docs/security.md.
+    failOnFindings: false
+
+manifests:
+  path: k8s
+  files:
+    - deployment.yaml
+
+# Ordered promotion path. The same immutable image flows through each stage.
+environments:
+  - name: staging
+    cluster: kind-staging
+    namespace: demo
+    replicas: 2
+    credentialId: kubeconfig-staging
+    branches: ["main"]
+    autoDeploy: true
+    smokeTest:
+      path: /health
+      expectStatus: 200
+
+  - name: prod
+    cluster: kind-prod
+    namespace: demo
+    replicas: 2
+    credentialId: kubeconfig-prod
+    branches: ["main"]
+    autoDeploy: false
+    approval:
+      required: true
+      timeoutMinutes: 15
+    smokeTest:
+      path: /health
+      expectStatus: 200
