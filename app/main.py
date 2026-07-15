@@ -32,7 +32,10 @@ def health():
 
 @app.get("/ready")
 def ready():
-    return jsonify(status="ready"), 200
+    # DELIBERATE FAULT (rollback demonstration): this build reports itself
+    # permanently not-ready. Kubernetes will therefore never send it traffic,
+    # the rollout cannot complete, and the pipeline must detect and revert it.
+    return jsonify(status="not-ready", reason="simulated defect"), 503
 
 
 @app.get("/api/build-info")
