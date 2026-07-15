@@ -32,10 +32,20 @@ def health():
 
 @app.get("/ready")
 def ready():
-    # DELIBERATE FAULT (rollback demonstration): this build reports itself
-    # permanently not-ready. Kubernetes will therefore never send it traffic,
-    # the rollout cannot complete, and the pipeline must detect and revert it.
-    return jsonify(status="not-ready", reason="simulated defect"), 503
+    # DELIBERATE FAULT (rollback demonstration).
+    #
+    # This simulates the class of defect unit tests cannot catch: one that only
+    # manifests once the service is running in a real environment. The fault is
+    # conditional on APP_ENV, which is injected by the Deployment at deploy time
+    # and is absent when the suite runs in CI — so the tests pass and the image
+    # builds, exactly as a config-dependent bug would behave in practice.
+    #
+    # In-cluster the pod reports permanently not-ready, so Kubernetes never
+    # routes traffic to it, the rollout cannot complete, and the pipeline must
+    # detect the stall and revert to the previous revision on its own.
+    if os.getenv("APP_ENV"):
+        return jsonify(status="not-ready", reason="simulated environment-specific defect"), 503
+    return jsonify(status="ready"), 200
 
 
 @app.get("/api/build-info")
