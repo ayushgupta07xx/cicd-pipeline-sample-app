@@ -14,14 +14,16 @@ metadata:
   name: jenkins-deployer
   namespace: ${NAMESPACE}
 rules:
-  # Manage the workload itself
+  # Manage the workload itself. 'watch' is required by `kubectl rollout status`,
+  # which opens a watch stream; without it kubectl degrades to polling and logs
+  # a permission error on every deploy.
   - apiGroups: ["apps"]
     resources: ["deployments"]
-    verbs: ["get", "list", "create", "update", "patch"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
   # rollout status / undo reads the underlying ReplicaSets
   - apiGroups: ["apps"]
     resources: ["replicasets"]
-    verbs: ["get", "list"]
+    verbs: ["get", "list", "watch"]
   # Service + SA are applied alongside the Deployment
   - apiGroups: [""]
     resources: ["services", "serviceaccounts"]
@@ -29,7 +31,15 @@ rules:
   # Diagnostics on failure: read pods and their logs, nothing more
   - apiGroups: [""]
     resources: ["pods", "pods/log"]
-    verbs: ["get", "list"]
+    verbs: ["get", "list", "watch"]
+  # Post-deploy smoke test tunnels to the Service to prove the app answers.
+  # This is the narrowest grant that permits verification: port-forward can only
+  # reach pods that already exist in this namespace. The broader alternative —
+  # `create` on pods (i.e. `kubectl run` a curl pod) — is deliberately NOT granted,
+  # as it would let CI schedule arbitrary workloads.
+  - apiGroups: [""]
+    resources: ["pods/portforward"]
+    verbs: ["create"]
   # Surface K8s events in the build log when a rollout stalls
   - apiGroups: [""]
     resources: ["events"]
