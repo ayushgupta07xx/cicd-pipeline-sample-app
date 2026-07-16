@@ -28,3 +28,12 @@ def test_index_renders():
     r = c.get("/")
     assert r.status_code == 200
     assert b"DELIVERY RECEIPT" in r.data
+
+
+def test_metrics_endpoint_exposes_prometheus_format():
+    c = app.test_client()
+    r = c.get("/metrics")
+    assert r.status_code == 200
+    body = r.data.decode()
+    assert "app_build_info" in body
+    assert "flask_http_request" in body or "python_info" in body

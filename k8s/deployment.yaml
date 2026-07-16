@@ -28,6 +28,9 @@ spec:
         app.kubernetes.io/version: "${APP_VERSION}"
       annotations:
         deploy.finacplus.io/commit: "${GIT_COMMIT}"
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/metrics"
     spec:
       serviceAccountName: ${APP_NAME}
       automountServiceAccountToken: false
@@ -102,6 +105,10 @@ metadata:
   namespace: ${NAMESPACE}
   labels:
     app.kubernetes.io/name: ${APP_NAME}
+  annotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8080"
+    prometheus.io/path: "/metrics"
 spec:
   type: ClusterIP
   selector:
