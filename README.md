@@ -1,5 +1,7 @@
 # cicd-pipeline-sample-app
 
+**[▶ Watch the walkthrough](https://youtu.be/8HLydMg_BCg)** — 9 minutes, recorded from live output.
+
 A containerised Python/Flask service (auto-deployed on commit) deployed by the
 [shared delivery pipeline](https://github.com/ayushgupta07xx/cicd-pipeline-shared-library).
 

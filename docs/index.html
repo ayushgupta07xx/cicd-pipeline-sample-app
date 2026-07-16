@@ -149,6 +149,22 @@
   .pbtn.next{text-align:right;margin-left:auto}
   .pbtn:disabled{opacity:0;pointer-events:none}
 
+  .watch{display:grid;grid-template-columns:auto 1fr;gap:22px;align-items:center;
+         border:1px solid var(--line);border-radius:12px;padding:22px 24px;margin-top:34px;
+         background:linear-gradient(100deg,var(--amber-soft),transparent 55%);
+         text-decoration:none;color:inherit;transition:.2s}
+  .watch:hover{border-color:var(--amber);transform:translateY(-2px);
+               box-shadow:0 16px 40px rgba(0,0,0,.5)}
+  .watch .play{width:52px;height:52px;border-radius:50%;border:1px solid var(--amber);
+               display:grid;place-items:center;flex:none;transition:.2s}
+  .watch:hover .play{background:var(--amber)}
+  .watch .play svg{width:16px;height:16px;fill:var(--amber);margin-left:3px;transition:.2s}
+  .watch:hover .play svg{fill:#0b0b0d}
+  .watch .wk{font:10.5px var(--mono);letter-spacing:1.6px;text-transform:uppercase;color:var(--amber)}
+  .watch .wt{font-weight:700;font-size:17px;letter-spacing:-.3px;margin:5px 0 4px}
+  .watch .wd{color:var(--dim);font-size:13px;line-height:1.6}
+  @media(max-width:820px){.watch{grid-template-columns:1fr}}
+
   footer{padding:26px 0 44px;color:var(--faint);font:12px var(--mono);
          display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
   footer a{color:var(--dim);text-decoration:none}
@@ -189,6 +205,20 @@
     <div class="stat"><div class="v">0<i>downtime</i></div><div class="k">through a failed deploy</div></div>
     <div class="stat"><div class="v">6<i>rules</i></div><div class="k">the entire RBAC surface CI holds</div></div>
   </div>
+
+  <a class="watch" href="https://youtu.be/8HLydMg_BCg" target="_blank" rel="noopener">
+    <span class="play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
+    <span>
+      <span class="wk">Walkthrough · 9 min</span>
+      <div class="wt">Watch the pipeline run</div>
+      <div class="wd">
+        A commit triggering a real build, promotion to production behind a gate, and a
+        broken deploy stalling at 0/1 Ready while the previous pods keep serving —
+        then diagnosed and rolled back by the pipeline, unattended. Every number on
+        screen is live output.
+      </div>
+    </span>
+  </a>
 
   <div class="cards" id="cards"></div>
 </section>
