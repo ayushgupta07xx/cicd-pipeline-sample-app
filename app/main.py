@@ -21,6 +21,8 @@ STARTED_AT = datetime.now(timezone.utc)
 
 # Build identity as a labelled gauge: a metric can therefore be attributed to
 # the exact commit that produced the running artifact.
+# Labels match orders-api exactly so a single dashboard query covers both
+# services — consistent instrumentation is what makes cross-service views work.
 metrics.info(
     "app_build_info",
     "Build metadata; labels carry the artifact identity",
@@ -28,6 +30,8 @@ metrics.info(
     commit=BUILD_INFO["git_commit"][:7],
     branch=BUILD_INFO["git_branch"],
     version=BUILD_INFO["app_version"],
+    environment=os.getenv("APP_ENV", "local"),
+    cluster=os.getenv("CLUSTER_NAME", "none"),
 )
 
 
