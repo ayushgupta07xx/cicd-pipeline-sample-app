@@ -184,10 +184,10 @@
   </p>
 
   <div class="stats">
-    <div class="stat"><div class="v">1<i>image</i></div><div class="k">built per commit, promoted unchanged</div></div>
+    <div class="stat"><div class="v">2<i>services</i></div><div class="k">Python and Node, one library, zero pipeline code each</div></div>
     <div class="stat"><div class="v">2<i>clusters</i></div><div class="k">staging auto · prod gated</div></div>
     <div class="stat"><div class="v">0<i>downtime</i></div><div class="k">through a failed deploy</div></div>
-    <div class="stat"><div class="v">6<i>rules</i></div><div class="k">total RBAC surface for CI</div></div>
+    <div class="stat"><div class="v">6<i>rules</i></div><div class="k">the entire RBAC surface CI holds</div></div>
   </div>
 
   <div class="cards" id="cards"></div>
@@ -278,6 +278,20 @@
     A green rollout only means containers started. <strong>Ready is not the same as working</strong> —
     the smoke test is what separates "Kubernetes accepted my manifest" from "the service responds".
   </p>
+
+  <h3>Triggered by the commit, not by a person</h3>
+  <p>
+    Two adjacent builds of the same job, one triggered by hand and one by a push — the
+    difference is the requirement:
+  </p>
+<pre><span class="c">$ curl .../job/sample-app/{19,20}/api/json | jq .causes</span>
+build #19 → Started by user admin
+build #20 → <span class="g">Started by an SCM change</span>     <span class="c">← 95s after `git push`</span></pre>
+  <p>
+    Jenkins polls every two minutes. On this workstation it has no public URL, so GitHub
+    cannot reach it — polling is the honest local equivalent of a webhook, and the
+    production alternative is named in <a href="#constraints" style="color:var(--amber)">Constraints</a>.
+  </p>
 </section>
 
 <!-- ═══ 03 MULTI-REPO ═══ -->
@@ -317,9 +331,49 @@ deliveryPipeline()</pre>
     </div>
   </div>
   <div class="note">
-    <b>Adding a third cluster is a block of YAML.</b> Onboarding a service is two files. Neither
-    touches pipeline code — which is what makes the claim testable rather than aspirational.
+    <b>Adding a third cluster is a block of YAML.</b> Onboarding a service is two files.
+    Neither touches pipeline code — which is what makes the claim testable rather than
+    aspirational.
   </div>
+
+  <h3>Proven, not asserted</h3>
+  <p>
+    A claim like this is worthless untested, so a second service was onboarded specifically
+    to attack it — different in every dimension the library might have quietly assumed:
+  </p>
+  <table>
+    <tr><th></th><th>sample-app</th><th>orders-api</th></tr>
+    <tr><td>Language</td><td>Python / Flask</td><td>Node / Express</td></tr>
+    <tr><td>Port</td><td>8080</td><td>3000</td></tr>
+    <tr><td>Replicas</td><td>2</td><td>1</td></tr>
+    <tr><td>Test runner</td><td>pytest</td><td>node:test</td></tr>
+    <tr><td>Smoke path</td><td><code>/health</code></td><td><code>/api/orders</code></td></tr>
+    <tr><td>Container UID</td><td>10001</td><td>1000</td></tr>
+  </table>
+
+  <div class="note">
+    <b>It found a real defect — which is the point.</b> The Test stage had hardcoded a Python
+    image and <code>pip install</code>, so <code>npm test</code> ran inside
+    <code>python:3.12-slim</code> and failed. The library was never language-agnostic; it had
+    only ever been asked to run Python. The fix moved the test runtime into each repository's
+    <code>deploy-config.yaml</code> as <code>test.image</code> and <code>test.setup</code>.
+    A single-repository submission would have shipped that bug undiscovered — and an
+    interviewer asking "what happens with a Node service?" would have found it instead.
+  </div>
+
+  <h3>Branch policy is config, not code</h3>
+  <p>
+    The same <code>branches</code> field governs whether a branch deploys at all. A feature
+    branch builds and tests, then stops:
+  </p>
+<pre><span class="c">build #1 · feature/branch-filter-demo</span>
+Test:        <span class="g">SUCCESS</span>
+Build image: <span class="g">SUCCESS</span>
+Scan image:  <span class="g">SUCCESS</span>
+Push image:  <span class="a">NOT_EXECUTED</span>
+Deploy:      <span class="a">NOT_EXECUTED</span>
+
+targets for branch 'feature/branch-filter-demo': <b>none (build + test only)</b></pre>
 </section>
 
 <!-- ═══ 04 SECURITY ═══ -->
@@ -360,8 +414,58 @@ pods/portforward    <b>[create]</b></pre>
 </section>
 
 <!-- ═══ 05 FAILURE ═══ -->
-<section class="panel" data-id="failure" data-title="Failure" data-num="05">
-  <div class="kicker">05 / Failure handling</div>
+<section class="panel" data-id="monitoring" data-title="Monitoring" data-num="05">
+  <div class="kicker">05 / Monitoring &amp; observability</div>
+  <h2>The pipeline's output is a metric.</h2>
+  <p class="sub">
+    Prometheus and Grafana run in the staging cluster. Both services are instrumented,
+    the dashboard is provisioned from a file in Git, and adding a service to monitoring
+    requires no monitoring change — the same principle as the delivery pipeline.
+  </p>
+
+  <h3>Discovery is declaration</h3>
+  <p>Three annotations on a pod template, and the service is scraped from the moment it deploys:</p>
+<pre>annotations:
+  <b>prometheus.io/scrape</b>: "true"
+  <b>prometheus.io/port</b>:   "8080"
+  <b>prometheus.io/path</b>:   "/metrics"</pre>
+  <p>
+    <strong>Verified:</strong> <code>orders-api</code> and <code>sample-app</code> were
+    instrumented independently and both appeared as active targets with zero Prometheus
+    configuration changes.
+  </p>
+
+  <h3>Build identity as a metric</h3>
+  <p>The most useful series in the stack is not latency — it is <em>which artifact is serving</em>:</p>
+<pre><span class="a">app_build_info</span>{service="sample-app", <b>build_number="20"</b>, <b>commit="bd5fd0b"</b>,
+               branch="main", version="1.0.0",
+               environment="staging", cluster="kind-staging"} 1</pre>
+  <p>
+    This closes the loop between delivery and observability: a latency regression is
+    attributable to a <strong>commit</strong>, not merely to a time. Every Grafana panel
+    renders deploy annotations from this series, so "did that deploy cause this?" is
+    answered by looking rather than guessing.
+  </p>
+
+  <h3>Alerts carry runbooks</h3>
+  <table>
+    <tr><th>Alert</th><th>Condition</th><th>Severity</th></tr>
+    <tr><td>ServiceHasUnreachableInstances</td><td>no reachable instances for 2m</td><td>critical</td></tr>
+    <tr><td>HighErrorRate</td><td>&gt;5% 5xx over 5m</td><td>critical</td></tr>
+    <tr><td>LatencyP95Degraded</td><td>p95 &gt;500ms for 5m</td><td>warning</td></tr>
+    <tr><td>TargetDown</td><td>scrape target down 1m</td><td>warning</td></tr>
+    <tr><td>NewBuildDeployed</td><td>build series changes</td><td>info</td></tr>
+  </table>
+  <div class="note">
+    <b>Alert on symptoms, not causes.</b> "p95 above 500ms" is user-visible. "CPU above 80%"
+    may or may not matter — paging on it produces alert fatigue, which is how real incidents
+    get missed. <code>NewBuildDeployed</code> is deliberately <code>info</code>: deploys are
+    not incidents, they are context.
+  </div>
+</section>
+
+<section class="panel" data-id="failure" data-title="Failure" data-num="06">
+  <div class="kicker">06 / Failure handling</div>
   <h2>Two fault classes. Two nets. Zero downtime.</h2>
   <p class="sub">
     A defect unit tests can catch never produces an image at all. A defect that only manifests
@@ -395,8 +499,8 @@ deployment.apps/sample-app rolled back
 </section>
 
 <!-- ═══ 06 CONSTRAINTS ═══ -->
-<section class="panel" data-id="constraints" data-title="Constraints" data-num="06">
-  <div class="kicker">06 / Constraints, named</div>
+<section class="panel" data-id="constraints" data-title="Constraints" data-num="07">
+  <div class="kicker">07 / Constraints, named</div>
   <h2>What a workstation forces — and what production does instead.</h2>
   <p class="sub">
     This runs on a single machine, so several choices are local-environment compromises rather
@@ -448,6 +552,7 @@ deployment.apps/sample-app rolled back
     stages:'Nine stages, each stopping a specific failure class, each with defined behaviour when it fires.',
     multirepo:'The three-line Jenkinsfile and the YAML contract that make onboarding configuration, not code.',
     security:'A six-rule RBAC surface verified against the live API server, plus defence in depth below it.',
+    monitoring:'Prometheus discovers services from annotations; every metric is attributable to a commit.',
     failure:'A live rollback: bad build detected, diagnosed and reverted with zero downtime, unattended.',
     constraints:'Every workstation compromise named precisely — with what production would do instead.'
   };
