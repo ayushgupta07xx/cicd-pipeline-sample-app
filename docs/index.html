@@ -400,6 +400,81 @@ deliveryPipeline()</pre>
     aspirational.
   </div>
 
+  <h3>The topology</h3>
+  <p>Three couplings, all of them names rather than code:</p>
+
+  <div class="diagram">
+  <svg viewBox="0 0 700 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Repository topology">
+    <defs>
+      <marker id="ar2" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+        <path d="M0,0 L7,3 L0,6 Z" fill="#44444c"/>
+      </marker>
+      <style>
+        .bx2{fill:#0c0c10;stroke:#26262e;stroke-width:1}
+        .lb2{fill:#f2f1ee;font:600 11.5px "Inter",sans-serif}
+        .sb2{fill:#8e8e96;font:9.5px ui-monospace,monospace}
+        .am2{fill:#e8a33d;font:9.5px ui-monospace,monospace}
+        .ln2{stroke:#44444c;stroke-width:1;marker-end:url(#ar2);fill:none}
+      </style>
+    </defs>
+
+    <text x="8" y="16" class="sb2">application repositories — two files each, zero pipeline code</text>
+
+    <rect x="8" y="26" width="150" height="62" rx="6" class="bx2"/>
+    <text x="20" y="46" class="lb2">sample-app</text>
+    <text x="20" y="61" class="sb2">Python · Flask · :8080</text>
+    <text x="20" y="76" class="am2">Jenkinsfile · deploy-config</text>
+
+    <rect x="8" y="98" width="150" height="62" rx="6" class="bx2"/>
+    <text x="20" y="118" class="lb2">orders-api</text>
+    <text x="20" y="133" class="sb2">Node · Express · :3000</text>
+    <text x="20" y="148" class="am2">Jenkinsfile · deploy-config</text>
+
+    <path d="M158 57 L246 57" class="ln2"/>
+    <path d="M158 129 C 200 129, 200 75, 246 75" class="ln2"/>
+    <text x="166" y="50" class="am2">@Library</text>
+
+    <rect x="250" y="26" width="176" height="134" rx="6" class="bx2"/>
+    <text x="262" y="48" class="lb2">shared-library</text>
+    <text x="262" y="66" class="sb2">every stage, once</text>
+    <text x="262" y="84" class="sb2">· test · build · scan</text>
+    <text x="262" y="99" class="sb2">· push · deploy</text>
+    <text x="262" y="114" class="sb2">· verify · roll back</text>
+    <text x="262" y="140" class="am2">no language assumptions</text>
+
+    <path d="M338 160 L338 206" class="ln2"/>
+    <text x="344" y="186" class="sb2">resolves a name</text>
+
+    <rect x="246" y="212" width="184" height="52" rx="6" class="bx2"
+          stroke="#e8a33d" stroke-dasharray="3 3"/>
+    <text x="258" y="233" class="am2">credentialId: kubeconfig-staging</text>
+    <text x="258" y="252" class="sb2">— just a string —</text>
+
+    <rect x="470" y="26" width="222" height="134" rx="6" class="bx2"/>
+    <text x="482" y="48" class="lb2">platform</text>
+    <text x="482" y="66" class="sb2">infra/ → clusters + registry</text>
+    <text x="482" y="84" class="sb2">terraform/ → namespace · quota</text>
+    <text x="482" y="99" class="sb2">            · SA · Role</text>
+    <text x="482" y="117" class="sb2">jenkins/ → image · JCasC</text>
+    <text x="482" y="132" class="sb2">           · kubeconfigs</text>
+
+    <path d="M560 160 C 560 200, 470 200, 434 234" class="ln2"/>
+    <text x="452" y="190" class="sb2">creates what that name means</text>
+
+    <path d="M338 264 L338 296" class="ln2"/>
+    <rect x="246" y="300" width="184" height="34" rx="6" class="bx2"/>
+    <text x="258" y="322" class="am2">kind-staging · kind-prod</text>
+  </svg>
+  </div>
+
+  <p>
+    The <strong>library</strong> doesn't know either language exists. The <strong>app repos</strong>
+    don't know each other, or what infrastructure sits behind a credential ID. The
+    <strong>platform</strong> doesn't know which applications use the clusters it provisions.
+    Adding a repository means referencing the library; adding a cluster means the platform
+    creates it and a config names it. <em>Nothing else changes.</em>
+  </p>
+
   <h3>Proven, not asserted</h3>
   <p>
     A claim like this is worthless untested, so a second service was onboarded specifically
