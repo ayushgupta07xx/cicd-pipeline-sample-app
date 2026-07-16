@@ -53,6 +53,17 @@ def health():
 
 @app.get("/ready")
 def ready():
+    # DELIBERATE FAULT (rollback demonstration).
+    #
+    # Conditional on APP_ENV, which the Deployment injects at deploy time and
+    # which is absent when the suite runs in CI. The tests therefore pass and
+    # the image builds — exactly as a config-dependent bug behaves in practice.
+    #
+    # In-cluster the pod reports permanently not-ready, so Kubernetes never
+    # routes traffic to it, the rollout cannot complete, and the pipeline must
+    # detect the stall and revert on its own.
+    if os.getenv("APP_ENV"):
+        return jsonify(status="not-ready", reason="simulated environment-specific defect"), 503
     return jsonify(status="ready"), 200
 
 
