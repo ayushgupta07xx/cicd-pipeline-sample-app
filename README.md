@@ -1,6 +1,6 @@
 # cicd-pipeline-sample-app
 
-A containerised Python/Flask service deployed by the
+A containerised Python/Flask service (auto-deployed on commit) deployed by the
 [shared delivery pipeline](https://github.com/ayushgupta07xx/cicd-pipeline-shared-library).
 
 Onboarding this service required exactly two files: a three-line `Jenkinsfile`
