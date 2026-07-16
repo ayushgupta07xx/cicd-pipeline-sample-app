@@ -180,6 +180,17 @@
   .watch .wt{font-weight:700;font-size:17px;letter-spacing:-.3px;margin:5px 0 4px}
   .watch .wd{color:var(--dim);font-size:13px;line-height:1.6}
   @media(max-width:820px){.watch{grid-template-columns:1fr}}
+  .watch{cursor:pointer}
+  .player{margin-top:34px;border:1px solid var(--line2);border-radius:12px;
+          overflow:hidden;background:#000;position:relative;
+          aspect-ratio:16/9;display:none;animation:pin .35s ease}
+  .player.on{display:block}
+  .player iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+  @keyframes pin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .pmeta{display:flex;align-items:center;justify-content:space-between;gap:12px;
+         margin-top:10px;font:11.5px var(--mono);color:var(--faint);letter-spacing:.4px}
+  .pmeta a{color:var(--dim);text-decoration:none}
+  .pmeta a:hover{color:var(--amber)}
 
   footer{padding:26px 0 44px;color:var(--faint);font:12px var(--mono);
          display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
@@ -222,7 +233,8 @@
     <div class="stat"><div class="v">6<i>rules</i></div><div class="k">the entire RBAC surface CI holds</div></div>
   </div>
 
-  <a class="watch" href="https://youtu.be/8HLydMg_BCg" target="_blank" rel="noopener">
+  <div class="watch" id="watch" role="button" tabindex="0"
+       aria-label="Play the 9 minute walkthrough">
     <span class="play"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></span>
     <span>
       <span class="wk">Walkthrough · 9 min</span>
@@ -234,7 +246,13 @@
         screen is live output.
       </div>
     </span>
-  </a>
+  </div>
+
+  <div class="player" id="player"></div>
+  <div class="pmeta" id="pmeta" style="display:none">
+    <span>Recorded from live output · nothing is mocked</span>
+    <a href="https://youtu.be/8HLydMg_BCg" target="_blank" rel="noopener">Open on YouTube ↗</a>
+  </div>
 
   <div class="cards" id="cards"></div>
 </section>
@@ -641,6 +659,32 @@ deployment.apps/sample-app rolled back
     if (e.key === 'ArrowRight' && cur < panels.length-1) go(panels[cur+1].dataset.id);
     if (e.key === 'ArrowLeft'  && cur > 0)               go(panels[cur-1].dataset.id);
   });
+
+  // Lite embed: nothing from YouTube loads until the card is clicked — the page
+  // stays fast and sets no third-party cookies on arrival.
+  var watch = document.getElementById('watch');
+  if (watch) {
+    var play = function(){
+      var host = document.getElementById('player');
+      if (host.dataset.on) return;
+      host.dataset.on = '1';
+      var f = document.createElement('iframe');
+      f.src = 'https://www.youtube-nocookie.com/embed/8HLydMg_BCg' +
+              '?autoplay=1&rel=0&modestbranding=1&playsinline=1&cc_load_policy=1';
+      f.title = 'CI/CD pipeline walkthrough';
+      f.allow = 'accelerometer; autoplay; encrypted-media; picture-in-picture; fullscreen';
+      f.allowFullscreen = true;
+      host.appendChild(f);
+      host.classList.add('on');
+      document.getElementById('pmeta').style.display = 'flex';
+      watch.style.display = 'none';
+      host.scrollIntoView({behavior:'smooth', block:'center'});
+    };
+    watch.addEventListener('click', play);
+    watch.addEventListener('keydown', function(e){
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); play(); }
+    });
+  }
 
   var initial = location.hash.replace('#','');
   go(idx(initial) >= 0 ? initial : 'overview', false);
