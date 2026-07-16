@@ -1,5 +1,7 @@
 # cicd-pipeline-sample-app
 
+<!-- branch-filter demonstration -->
+
 A containerised Python/Flask service deployed by the
 [shared delivery pipeline](https://github.com/ayushgupta07xx/cicd-pipeline-shared-library).
 
