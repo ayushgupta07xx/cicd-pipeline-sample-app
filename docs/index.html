@@ -51,8 +51,8 @@
          background:rgba(7,7,9,.85);backdrop-filter:blur(14px)}
   .hrow{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px 0}
   .brand{display:flex;align-items:center;gap:11px;font-family:var(--mono)}
-  .dot{width:7px;height:7px;border-radius:50%;background:var(--amber);
-       box-shadow:0 0 12px rgba(232,163,61,.8)}
+  .mark{width:24px;height:24px;flex:none;border-radius:6px;
+        filter:drop-shadow(0 0 10px rgba(232,163,61,.25))}
   .wordmark{font-weight:700;letter-spacing:3px;font-size:12px}
   .repos{display:flex;gap:10px}
   .repos a{font:12px var(--mono);color:var(--dim);text-decoration:none;padding:7px 13px;
@@ -192,7 +192,7 @@
 <header>
   <div class="wrap">
     <div class="hrow">
-      <div class="brand"><span class="dot"></span><span class="wordmark">CI/CD PIPELINE</span></div>
+      <div class="brand"><img class="mark" src="favicon.svg" alt=""/><span class="wordmark">CI/CD PIPELINE</span></div>
       <div class="repos">
         <a href="https://github.com/ayushgupta07xx/cicd-pipeline-shared-library">shared-library</a>
         <a href="https://github.com/ayushgupta07xx/cicd-pipeline-sample-app">sample-app</a>
