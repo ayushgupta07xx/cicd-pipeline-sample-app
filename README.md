@@ -56,3 +56,4 @@ ServiceAccount token mounted. Verify:
 ```bash
 docker run --rm sample-app:local id
 ```
+
